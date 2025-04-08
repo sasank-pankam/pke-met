@@ -60,7 +60,7 @@ class CyclicGroup:
             return g
 
     @classmethod
-    def new(cls, order, generator):
+    def new(cls, order, generator=None):
         if generator:
             return cls(order, generator)
         return cls(order, cls.find_generator(order))

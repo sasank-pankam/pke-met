@@ -3,21 +3,36 @@ import numpy as np
 import textwrap
 
 from Crypto.Hash import BLAKE2b
+from Crypto.Util.number import getPrime
 import random
 from cyclic_group import CyclicGroup
 from finite_field import FiniteField, hash_to_zp
 from utils import gaussian_elimination_mod_p, get_coeffient_matrix
 
 
+KEY_SIZE = 8
+
+
 class PKE_MET_Base:
-    def __init__(self, lamda, prime, generator=None) -> None:
-        self.prime = prime
+    def __init__(self, params) -> None:
+        self.prime = (prime := params["prime"])
         self.l = math.ceil(math.log2(prime))
-        self.zp = FiniteField(prime)
-        self.group = CyclicGroup.new(prime, generator)
-        self.H1 = lambda x: BLAKE2b.new(data=x, digest_bits=2 * self.l).digest()
-        self.H2 = lambda x: BLAKE2b.new(data=x, digest_bits=lamda).digest()
-        self.H3 = hash_to_zp(prime)
+        self.zp = params["field"]
+        self.group = params["group"]
+        self.H1 = params["h1"]
+        self.H2 = params["h2"]
+        self.H3 = params["h3"]
+
+    @classmethod
+    def setup(cls, lamda):
+        return {
+            "prime": (prime := getPrime(KEY_SIZE)),
+            "group": CyclicGroup.new(prime),
+            "field": FiniteField(prime),
+            "h1": lambda x: BLAKE2b.new(data=x, digest_bits=2 * self.l).digest(),
+            "h2": lambda x: BLAKE2b.new(data=x, digest_bits=lamda).digest(),
+            "h3": hash_to_zp(prime),
+        }
 
     def keygen(self):
         x = random.randint(0, self.prime - 1)
@@ -101,6 +116,8 @@ class PKE_MET_Base:
         a_s, f_a_s = zip(*pairs)
         A = np.array(get_coeffient_matrix(*a_s, prime=self.prime))
         B = np.array(f_a_s)
+        # print(A)
+        # print(B)
         co_effs = gaussian_elimination_mod_p(A, B, self.prime)
 
         def check_for_c5(inp):
@@ -132,8 +149,8 @@ class PKE_MET_Base:
 
 
 class PKE_MET_private(PKE_MET_Base):
-    def __init__(self, lamda, prime, generator=None) -> None:
-        super().__init__(lamda, prime, generator)
+    def __init__(self, params) -> None:
+        super().__init__(params)
         self.keygen()
 
     def aut(self):
@@ -176,6 +193,6 @@ class PKE_MET_private(PKE_MET_Base):
 
 
 class PKE_MET_public(PKE_MET_Base):
-    def __init__(self, lamda, public_key, prime, generator=None) -> None:
-        super().__init__(lamda, prime, generator)
+    def __init__(self, public_key, params) -> None:
+        super().__init__(params)
         self.public_key = public_key

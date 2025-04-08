@@ -7,8 +7,8 @@ class FiniteField:
         Initialize a finite field of prime order.
         :param prime: A prime number defining the field order.
         """
-        # if prime <= 1 or not self.is_prime(prime):
-        #     raise ValueError("Field order must be a prime number.")
+        if prime <= 1 or not self.is_prime(prime):
+            raise ValueError("Field order must be a prime number.")
 
         self.prime = prime
 
